@@ -18,18 +18,18 @@ st.write(
     "Saisissez vos contrôles HACCP, gérez vos données en direct et exportez le rapport Excel moderne."
 )
 
-# Initialisation des données
+# Initialisation de la base de données dans la session Streamlit
 if "df_nc" not in st.session_state:
     st.session_state.df_nc = pd.DataFrame(
         [
             {
                 "ID": "NC-2026-001",
                 "Date Détection": "2026-03-15",
-                "Secteur / Zone": "Chambre Froide Positive 1",
+                "Secteur / Zone": "Cuisine Centrale",
                 "Catégorie HACCP": "Chaîne du froid",
-                "Description de la Non-Conformité": "Température relevée à +8°C au lieu de +3°C max.",
+                "Description de la Non-Conformité": "Température relevée à +8°C au lieu de +3°C max dans la chambre froide.",
                 "Niveau de Risque": "Critique",
-                "Action Corrective Immédiate": "Mise en isolement des denrées et transfert vers CF2.",
+                "Action Corrective Immédiate": "Mise en isolement des denrées et transfert.",
                 "Responsable Action": "Chef Équipe Froid",
                 "Date Échéance": "2026-03-15",
                 "Statut": "Clôturé",
@@ -37,7 +37,7 @@ if "df_nc" not in st.session_state:
             {
                 "ID": "NC-2026-002",
                 "Date Détection": "2026-03-16",
-                "Secteur / Zone": "Zone Réception / Quai",
+                "Secteur / Zone": "Food Store",
                 "Catégorie HACCP": "Traçabilité & Livraison",
                 "Description de la Non-Conformité": "Colis de poisson frais reçus sans étiquette de traçabilité.",
                 "Niveau de Risque": "Majeur",
@@ -49,7 +49,7 @@ if "df_nc" not in st.session_state:
             {
                 "ID": "NC-2026-003",
                 "Date Détection": "2026-03-18",
-                "Secteur / Zone": "Légumerie / Machines à glaçons",
+                "Secteur / Zone": "Cuisine Canastel",
                 "Catégorie HACCP": "Hygiène & Nettoyage",
                 "Description de la Non-Conformité": "Machine à glaçons : absence de contrôle de propreté des surfaces en contact avec la glace.",
                 "Niveau de Risque": "Majeur",
@@ -72,17 +72,17 @@ with st.sidebar.form(key="form_saisie", clear_on_submit=True):
         "Date de Détection", value=datetime.date.today()
     )
 
+    # Liste personnalisée des zones de votre établissement
     secteur = st.selectbox(
         "Secteur / Zone",
         [
-            "Chambre Froide Positive",
-            "Chambre Froide Négative",
-            "Zone Réception / Quai",
-            "Cuisine Chaude",
-            "Pâtisserie",
-            "Légumerie",
-            "Zone Plonge / Stewarding",
-            "Local Glaçons",
+            "Cuisine Centrale",
+            "Food Store",
+            "Room Service",
+            "Cuisine Canastel",
+            "Restaurants",
+            "Atrium",
+            "Aqua",
         ],
     )
 
@@ -138,6 +138,19 @@ edited_df = st.data_editor(
     num_rows="dynamic",
     use_container_width=True,
     column_config={
+        "Secteur / Zone": st.column_config.SelectboxColumn(
+            "Secteur / Zone",
+            options=[
+                "Cuisine Centrale",
+                "Food Store",
+                "Room Service",
+                "Cuisine Canastel",
+                "Restaurants",
+                "Atrium",
+                "Aqua",
+            ],
+            required=True,
+        ),
         "Statut": st.column_config.SelectboxColumn(
             "Statut", options=["Ouvert", "En cours", "Clôturé"], required=True
         ),
@@ -291,7 +304,6 @@ def generer_excel_moderne(df_data):
 st.subheader("📥 Exporter en Excel")
 excel_data = generer_excel_moderne(st.session_state.df_nc)
 
-# Bouton de téléchargement Excel officiel (.xlsx)
 st.download_button(
     label="📊 Télécharger le rapport Excel Moderne (.xlsx)",
     data=excel_data,
