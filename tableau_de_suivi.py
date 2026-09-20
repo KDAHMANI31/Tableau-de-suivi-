@@ -15,10 +15,10 @@ st.set_page_config(
 
 st.title("🍳 Plateforme de Suivi des Non-Conformités - Cuisine Centrale")
 st.write(
-    "Saisissez vos contrôles HACCP, gérez vos données en direct et exportez le rapport Excel."
+    "Saisissez vos contrôles HACCP, gérez vos données en direct et exportez le rapport Excel moderne."
 )
 
-# Initialisation de la base de données dans la session Streamlit
+# Initialisation de la session
 if "df_nc" not in st.session_state:
     st.session_state.df_nc = pd.DataFrame(
         [
@@ -123,21 +123,16 @@ if btn_submit:
         "Statut": statut,
     }
 
-    # Ajout au dataframe de la session
     st.session_state.df_nc = pd.concat(
         [st.session_state.df_nc, pd.DataFrame([nouvelle_nc])], ignore_index=True
     )
     st.sidebar.success(f"Non-conformité {next_id} enregistrée !")
 
 # ---------------------------------------------------------
-# CORPS PRINCIPAL : AFFICHAGE ET ÉDITION DU TABLEAU
+# AFFICHAGE INTERACTIF
 # ---------------------------------------------------------
 st.subheader("📋 Tableau dynamique des Non-Conformités")
-st.caption(
-    "Vous pouvez modifier directement les cases dans le tableau ci-dessous ou ajouter/supprimer des lignes."
-)
 
-# Tableau interactif (st.data_editor)
 edited_df = st.data_editor(
     st.session_state.df_nc,
     num_rows="dynamic",
@@ -154,59 +149,86 @@ edited_df = st.data_editor(
     },
 )
 
-# Mettre à jour la session avec les modifications directes
 st.session_state.df_nc = edited_df
 
 
 # ---------------------------------------------------------
-# GÉNÉRATION DU FICHIER EXCEL
+# GÉNÉRATION EXCEL MODERNE & STRUCTURÉE
 # ---------------------------------------------------------
-def generer_excel(df_data):
+def generer_excel_moderne(df_data):
     wb = Workbook()
     ws = wb.active
     ws.title = "Suivi NC Cuisine"
+    ws.views.sheetView[0].showGridLines = True
 
-    # Titre
+    # Style des polices
+    font_title = Font(name="Segoe UI", size=15, bold=True, color="FFFFFF")
+    font_header = Font(name="Segoe UI", size=10, bold=True, color="FFFFFF")
+    font_body = Font(name="Segoe UI", size=9, color="1E293B")
+
+    # Couleurs du thème (Indigo / Slate)
+    fill_title = PatternFill(
+        start_color="1E293B", end_color="1E293B", fill_type="solid"
+    )
+    fill_header = PatternFill(
+        start_color="2B579A", end_color="2B579A", fill_type="solid"
+    )
+    fill_zebra = PatternFill(
+        start_color="F8FAFC", end_color="F8FAFC", fill_type="solid"
+    )
+
+    # Bordures discrètes
+    border_light = Border(
+        left=Side(style="thin", color="E2E8F0"),
+        right=Side(style="thin", color="E2E8F0"),
+        top=Side(style="thin", color="E2E8F0"),
+        bottom=Side(style="thin", color="E2E8F0"),
+    )
+
+    # 1. Bannière de Titre
     ws.merge_cells("A1:J1")
     title_cell = ws["A1"]
-    title_cell.value = "SUIVI DES NON-CONFORMITÉS - CUISINE CENTRALE HÔTEL"
-    title_cell.font = Font(name="Arial", size=14, bold=True, color="FFFFFF")
-    title_cell.fill = PatternFill(
-        start_color="1F4E78", end_color="1F4E78", fill_type="solid"
+    title_cell.value = (
+        " REGISTRE DES NON-CONFORMITÉS HACCP - CUISINE CENTRALE"
     )
-    title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.row_dimensions[1].height = 40
+    title_cell.font = font_title
+    title_cell.fill = fill_title
+    title_cell.alignment = Alignment(horizontal="left", vertical="center")
+    ws.row_dimensions[1].height = 42
 
-    # En-têtes
+    # Ligne vide de transition
+    ws.row_dimensions[2].height = 10
+
+    # 2. En-têtes des colonnes
     headers = list(df_data.columns)
     for col_num, header_title in enumerate(headers, 1):
         cell = ws.cell(row=3, column=col_num)
-        cell.value = header_title
-        cell.font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
-        cell.fill = PatternFill(
-            start_color="2F5597", end_color="2F5597", fill_type="solid"
-        )
+        cell.value = header_title.upper()
+        cell.font = font_header
+        cell.fill = fill_header
         cell.alignment = Alignment(
             horizontal="center", vertical="center", wrap_text=True
         )
 
-    ws.row_dimensions[3].height = 25
+    ws.row_dimensions[3].height = 28
 
-    thin_border = Border(
-        left=Side(style="thin", color="D9D9D9"),
-        right=Side(style="thin", color="D9D9D9"),
-        top=Side(style="thin", color="D9D9D9"),
-        bottom=Side(style="thin", color="D9D9D9"),
-    )
-
+    # 3. Injection et alignement des données
     for row_idx, row_data in enumerate(df_data.values, 4):
-        ws.row_dimensions[row_idx].height = 22
+        ws.row_dimensions[row_idx].height = 26
+        is_even = row_idx % 2 == 0
+
         for col_idx, value in enumerate(row_data, 1):
             cell = ws.cell(row=row_idx, column=col_idx)
             cell.value = value
-            cell.font = Font(name="Arial", size=9)
-            cell.border = thin_border
-            if col_idx in [1, 2, 6, 9, 10]:
+            cell.font = font_body
+            cell.border = border_light
+
+            # Effet Zebra
+            if is_even:
+                cell.fill = fill_zebra
+
+            # Alignements personnalisés selon le type de champ
+            if col_idx in [1, 2, 6, 9, 10]:  # ID, Dates, Risque, Statut
                 cell.alignment = Alignment(
                     horizontal="center", vertical="center"
                 )
@@ -215,60 +237,73 @@ def generer_excel(df_data):
                     horizontal="left", vertical="center", wrap_text=True
                 )
 
-    # Mise en forme conditionnelle des Statuts
-    red_fill = PatternFill(
-        start_color="FCE4D6", end_color="FCE4D6", fill_type="solid"
-    )
-    red_font = Font(color="C00000", bold=True, name="Arial", size=9)
-    yellow_fill = PatternFill(
-        start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"
-    )
-    yellow_font = Font(color="B25900", bold=True, name="Arial", size=9)
-    green_fill = PatternFill(
-        start_color="E2EFDA", end_color="E2EFDA", fill_type="solid"
-    )
-    green_font = Font(color="375623", bold=True, name="Arial", size=9)
+    # 4. Mise en forme conditionnelle des Statuts (Pastels doux)
+    last_row = max(len(df_data) + 3, 4)
 
-    last_row = len(df_data) + 3
-    statut_range = f"J4:J{last_row}"
-
+    # Statuts
     ws.conditional_formatting.add(
-        statut_range,
+        f"J4:J{last_row}",
         CellIsRule(
             operator="equal",
             formula=['"Ouvert"'],
-            fill=red_fill,
-            font=red_font,
+            fill=PatternFill(
+                start_color="FEE2E2", end_color="FEE2E2", fill_type="solid"
+            ),
+            font=Font(color="991B1B", bold=True, name="Segoe UI", size=9),
         ),
     )
     ws.conditional_formatting.add(
-        statut_range,
+        f"J4:J{last_row}",
         CellIsRule(
             operator="equal",
             formula=['"En cours"'],
-            fill=yellow_fill,
-            font=yellow_font,
+            fill=PatternFill(
+                start_color="FEF3C7", end_color="FEF3C7", fill_type="solid"
+            ),
+            font=Font(color="92400E", bold=True, name="Segoe UI", size=9),
         ),
     )
     ws.conditional_formatting.add(
-        statut_range,
+        f"J4:J{last_row}",
         CellIsRule(
             operator="equal",
             formula=['"Clôturé"'],
-            fill=green_fill,
-            font=green_font,
+            fill=PatternFill(
+                start_color="DCFCE7", end_color="DCFCE7", fill_type="solid"
+            ),
+            font=Font(color="166534", bold=True, name="Segoe UI", size=9),
         ),
     )
 
-    for col in ws.columns:
-        max_len = 0
-        col_letter = get_column_letter(col[0].column)
-        for cell in col:
-            if cell.row == 1:
-                continue
-            if cell.value:
-                max_len = max(max_len, len(str(cell.value)))
-        ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
+    # Niveaux de Risque
+    ws.conditional_formatting.add(
+        f"F4:F{last_row}",
+        CellIsRule(
+            operator="equal",
+            formula=['"Critique"'],
+            fill=PatternFill(
+                start_color="FECDD3", end_color="FECDD3", fill_type="solid"
+            ),
+            font=Font(color="881337", bold=True, name="Segoe UI", size=9),
+        ),
+    )
+
+    # 5. Dimensionnement dynamique et propre des colonnes
+    column_widths = {
+        "A": 16,  # ID
+        "B": 15,  # Date
+        "C": 26,  # Secteur
+        "D": 24,  # Catégorie
+        "E": 40,  # Description
+        "F": 16,  # Risque
+        "G": 40,  # Action
+        "H": 22,  # Responsable
+        "I": 15,  # Échéance
+        "J": 14,  # Statut
+    }
+
+    for col_letter, width in column_widths.items():
+        ws.column_dimensions[col_letter].width = width
 
     buffer = io.BytesIO()
     wb.save(buffer)
@@ -276,11 +311,11 @@ def generer_excel(df_data):
     return buffer
 
 
-st.subheader("📥 Exporter le rapport Excel")
-excel_data = generer_excel(st.session_state.df_nc)
+st.subheader("📥 Exporter le rapport")
+excel_data = generer_excel_moderne(st.session_state.df_nc)
 
 st.download_button(
-    label="Télécharger le fichier Excel mis à jour (.xlsx)",
+    label="Télécharger le rapport Excel Moderne (.xlsx)",
     data=excel_data,
     file_name="Suivi_Non_Conformites_Cuisine.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
