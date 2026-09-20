@@ -18,7 +18,7 @@ st.write(
     "Saisissez vos contrôles HACCP, gérez vos données en direct et exportez le rapport Excel moderne."
 )
 
-# Initialisation de la session
+# Initialisation des données
 if "df_nc" not in st.session_state:
     st.session_state.df_nc = pd.DataFrame(
         [
@@ -153,7 +153,7 @@ st.session_state.df_nc = edited_df
 
 
 # ---------------------------------------------------------
-# GÉNÉRATION EXCEL MODERNE & STRUCTURÉE
+# GÉNÉRATION DU FICHIER EXCEL DESIGN (.XLSX)
 # ---------------------------------------------------------
 def generer_excel_moderne(df_data):
     wb = Workbook()
@@ -161,12 +161,12 @@ def generer_excel_moderne(df_data):
     ws.title = "Suivi NC Cuisine"
     ws.views.sheetView[0].showGridLines = True
 
-    # Style des polices
-    font_title = Font(name="Segoe UI", size=15, bold=True, color="FFFFFF")
+    # Polices
+    font_title = Font(name="Segoe UI", size=14, bold=True, color="FFFFFF")
     font_header = Font(name="Segoe UI", size=10, bold=True, color="FFFFFF")
     font_body = Font(name="Segoe UI", size=9, color="1E293B")
 
-    # Couleurs du thème (Indigo / Slate)
+    # Couleurs
     fill_title = PatternFill(
         start_color="1E293B", end_color="1E293B", fill_type="solid"
     )
@@ -177,7 +177,6 @@ def generer_excel_moderne(df_data):
         start_color="F8FAFC", end_color="F8FAFC", fill_type="solid"
     )
 
-    # Bordures discrètes
     border_light = Border(
         left=Side(style="thin", color="E2E8F0"),
         right=Side(style="thin", color="E2E8F0"),
@@ -185,21 +184,17 @@ def generer_excel_moderne(df_data):
         bottom=Side(style="thin", color="E2E8F0"),
     )
 
-    # 1. Bannière de Titre
+    # Titre principal
     ws.merge_cells("A1:J1")
     title_cell = ws["A1"]
-    title_cell.value = (
-        " REGISTRE DES NON-CONFORMITÉS HACCP - CUISINE CENTRALE"
-    )
+    title_cell.value = " REGISTRE DES NON-CONFORMITÉS HACCP - CUISINE CENTRALE"
     title_cell.font = font_title
     title_cell.fill = fill_title
     title_cell.alignment = Alignment(horizontal="left", vertical="center")
-    ws.row_dimensions[1].height = 42
-
-    # Ligne vide de transition
+    ws.row_dimensions[1].height = 40
     ws.row_dimensions[2].height = 10
 
-    # 2. En-têtes des colonnes
+    # Colonnes
     headers = list(df_data.columns)
     for col_num, header_title in enumerate(headers, 1):
         cell = ws.cell(row=3, column=col_num)
@@ -212,7 +207,7 @@ def generer_excel_moderne(df_data):
 
     ws.row_dimensions[3].height = 28
 
-    # 3. Injection et alignement des données
+    # Lignes de données
     for row_idx, row_data in enumerate(df_data.values, 4):
         ws.row_dimensions[row_idx].height = 26
         is_even = row_idx % 2 == 0
@@ -223,12 +218,10 @@ def generer_excel_moderne(df_data):
             cell.font = font_body
             cell.border = border_light
 
-            # Effet Zebra
             if is_even:
                 cell.fill = fill_zebra
 
-            # Alignements personnalisés selon le type de champ
-            if col_idx in [1, 2, 6, 9, 10]:  # ID, Dates, Risque, Statut
+            if col_idx in [1, 2, 6, 9, 10]:
                 cell.alignment = Alignment(
                     horizontal="center", vertical="center"
                 )
@@ -237,10 +230,8 @@ def generer_excel_moderne(df_data):
                     horizontal="left", vertical="center", wrap_text=True
                 )
 
-    # 4. Mise en forme conditionnelle des Statuts (Pastels doux)
+    # Couleurs de Statut
     last_row = max(len(df_data) + 3, 4)
-
-    # Statuts
     ws.conditional_formatting.add(
         f"J4:J{last_row}",
         CellIsRule(
@@ -275,33 +266,19 @@ def generer_excel_moderne(df_data):
         ),
     )
 
-    # Niveaux de Risque
-    ws.conditional_formatting.add(
-        f"F4:F{last_row}",
-        CellIsRule(
-            operator="equal",
-            formula=['"Critique"'],
-            fill=PatternFill(
-                start_color="FECDD3", end_color="FECDD3", fill_type="solid"
-            ),
-            font=Font(color="881337", bold=True, name="Segoe UI", size=9),
-        ),
-    )
-
-    # 5. Dimensionnement dynamique et propre des colonnes
+    # Largeurs des colonnes
     column_widths = {
-        "A": 16,  # ID
-        "B": 15,  # Date
-        "C": 26,  # Secteur
-        "D": 24,  # Catégorie
-        "E": 40,  # Description
-        "F": 16,  # Risque
-        "G": 40,  # Action
-        "H": 22,  # Responsable
-        "I": 15,  # Échéance
-        "J": 14,  # Statut
+        "A": 16,
+        "B": 15,
+        "C": 26,
+        "D": 24,
+        "E": 40,
+        "F": 16,
+        "G": 40,
+        "H": 22,
+        "I": 15,
+        "J": 14,
     }
-
     for col_letter, width in column_widths.items():
         ws.column_dimensions[col_letter].width = width
 
@@ -311,11 +288,12 @@ def generer_excel_moderne(df_data):
     return buffer
 
 
-st.subheader("📥 Exporter le rapport")
+st.subheader("📥 Exporter en Excel")
 excel_data = generer_excel_moderne(st.session_state.df_nc)
 
+# Bouton de téléchargement Excel officiel (.xlsx)
 st.download_button(
-    label="Télécharger le rapport Excel Moderne (.xlsx)",
+    label="📊 Télécharger le rapport Excel Moderne (.xlsx)",
     data=excel_data,
     file_name="Suivi_Non_Conformites_Cuisine.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
